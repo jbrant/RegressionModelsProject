@@ -1,12 +1,17 @@
 ---
 title: "Regression Models - Project WriteUp"
 author: "Jonathan Brant"
-date: "Friday, February 20, 2015"
-output: html_document
+output: pdf_document
 ---
 
+```{r loadLibraries, echo=FALSE, eval=FALSE}
+suppressMessages(library(ggplot2))
+suppressMessages(library(gridExtra))
+suppressMessages(library(ggfortify))
+```
+
 ## Executive Summary
-Motor Trend magazine was interested in determining the relationship between fuel economy (measured in miles per gallon, or MPG) and several other variables given in the "mtcars" dataset.  In particular, they were interested in how the two transmission types (automatic and manual) affect fuel economy.
+Motor Trend magazine was interested in determining the relationship between fuel economy (measured in miles per gallon, or MPG) and several other variables given in the *mtcars* dataset.  In particular, they were interested in how the two transmission types (automatic and manual) affect fuel economy.
 
 This study addressed the aforementioned question at two levels.  First, we focused solely on the affect of only the transmission type on fuel economy (disregarding all other variables) and established a measure of statistical significance for that effect.  It turned out that cars with manual transmissions had better fuel economy than did automatic transmissions by a statistically significant margin ($p < 0.05$).
 
@@ -14,5 +19,138 @@ The second portion of the study attempted to quantify the difference between tra
 
 As such, while transmission type does affect fuel economy, it is not the most significant driver of such.
 
-## Data PreProcessing
+## Data Pre-Processing and Exploratory Analysis
+Unfortunately, many of the attributes within the *mtcars* dataset are somewhat cryptic, so the first undertaking will simply be an effort toward making the headers more intuitive, as well as converting the binary indicator for transmission to a string value and converting discrete fields (i.e. cylinders, transmission, etc.) to factors.  The code for this cleanup can be found in section 1.1 of the appendix.
 
+In order to get a good sense of the data, an exploratory analysis needs to be conducted, examining the structure of the dataset and the range and distribution of its values for each column.  The code and corresponding output for this analysis can be found in section 1.2 of the appendix.
+
+## Transmission effect on Fuel Economy
+In order to satisfy the initial requirements of Motor Trend, the first question that needed to be addressed was, holding all other factors constant, which transmission results in the best fueld economy (highest MPG)?  The hypotheses are setup as follows:
+
+$H_0:$ There is no difference in fuel economy between manual and automatic transmissions.  
+$H_a:$ There is a difference in fuel economy between manual and automatic transmissions.  
+
+The box plot shown in section 2.1 of the appendix depicts the median and interquartile range of the MPG for both manual and automatic transmissions.  At first glance, it seems that the fuel economy for manual transmissions is much better than automatic.
+
+In order to determine whether the result is statistically significant and not simply due to sampling error, a t-test is conducted in order to evaluate the above hypotheses, the code and results of which are shown section 2.2 of the appendix.  It turns out that the results are indeed highly significant ($p < 0.01$), so the null hypothesis that the two transmissions result in comparable fuel economy is rejected.
+
+## Quantifying Differential Transmission effect on Fuel Economy
+After establishing that manual transmissions generally result in better fuel economy than automatic transmissions holding all other variables constant, we want to take a look at the effect of other variables in the dataset in order to determine the relative contribution of other factors in relation to the transmission.  The hypotheses on which this effort is based are below:
+
+$H_0:$ The transmission type is solely responsible for variation in fuel efficiency.  
+$H_a:$ Confounders exist that contribute as much or more to variation in fuel efficiency (or lack thereof) than transmission type.  
+
+In order to examine the relationship between fueld economy and other variables, a linear model is constructed with all variables as predictors of full efficiency.  Stepwise regression is then run on the model (in both directions) in order to select the best explanatory variables.  The code and results are given in section 3.1 of the appendix.  It turns out that the best fit model includes weight, horsepower, transmission,and cylinders; however, only weight and horsepower are significant ($p < 0.05$ and $p < 0.01$ respectively).  That said, the highly significant overall $p$-value and the fact that adjusted $R^2$ indicates that 84% of variability is explained by the included parameters indicates that this is a relatively good predictive model.
+
+The next step is to evaluate how the aforementioned model stacks up against the model using only the transmission type to predict the fuel economy by running an analysis of variance (ANOVA) against the two models (shown in section 3.2 of the appendix).  The results yield a residual sum of squares that is much lower for the model that includes the engine displacement, horsepower, weight, and transmission (as opposed to the one with just the transmission), indicating a better fit.  Moreover, there's a highly significant $p$-value ($p < 0.01$ at 99% CI), suggesting (assuming accuracy of the model) that the null hypothesis that fuel economy is wholly explained by transmission can be confidently rejected.
+
+Prior to performing inference, however, the final step is to perform model diagnostics in order to establish validity for model assumptions.  Section 3.3 of the appendix depicts the result of running the following four diagnostics:
+
+* Residuals vs. Fitted plot - indicates some level of homoscedasticity in the lack of correlation between residuals and fitted values.
+* Q-Q plot - depicts a tight fit of the standardized residuals to the normal line, indicating a roughly normal distribution of residuals.
+* Scale-Location plot - depicts a loess curve that slopes downward, and then relatively steeply upward. This would seem to indicate a less than ideal uniformity between variances.
+* Residuals vs. Leverage plot - indicates that the distribution of leverage vs. residuals s fairly well-balanced; however, the bulk of the data resides in the downard sloping portion of the line, indicating overall high leverage and low residual.
+
+## Conclusion
+Despite the statistical signifance of the ANOVA, we're hesistant to reject the null hypothesis because of some of the issues found while running diagnostics, potentially indicating some shortcomings of the model itself.  There are, however, some conclusions that can still be drawn:
+
+1. Motor Trend can be reasonably assured that overall, cars with manual transmissions will have better fuel economy than cars with automatic transmissions if all other factors are held constant.
+2. Transmission is not the only variable that has an effect on fuel economy, nor is its effect the most pronounced.  In addition to transmission, greater mass, more horsepower, and larger engine sizes are all inversely related to fuel economy.
+
+## Appendix
+
+### Section 1.1 - Pre-Process Code
+```{r preProcess, eval=FALSE}
+## Load the dataset
+data(mtcars)
+
+## Rename dataset columns in order to improve readability
+names(mtcars) <- c(
+  "MPG"
+  ,"Cylinders"
+  ,"Displacement"
+  ,"Horsepower"
+  ,"RearAxleRatio"
+  ,"Weight"
+  ,"QuarterMileTime"
+  ,"VS"
+  ,"Transmission"
+  ,"NumForwardGears"
+  ,"NumCarburetors"
+)
+
+## Convert transmission value to string literals
+mtcars$Transmission[mtcars$Transmission == 0] <- "Automatic"
+mtcars$Transmission[mtcars$Transmission == 1] <- "Manual"
+
+## Convert cylinders, transmission, V/S, forward gears, and carburetors to factors
+mtcars$Cylinders <- as.factor(mtcars$Cylinders)
+mtcars$Transmission <- as.factor(mtcars$Transmission)
+mtcars$VS <- as.factor(mtcars$VS)
+mtcars$NumForwardGears <- as.factor(mtcars$NumForwardGears)
+mtcars$NumCarburetors <- as.factor(mtcars$NumCarburetors)
+```
+
+### Section 1.2 - Exploratory Analysis
+```{r exploratoryAnalysis}
+## Print out the dataset variables
+names(mtcars)
+
+## Take a look at the data set structure
+str(mtcars)
+
+## Print overview of data
+summary(mtcars)
+```
+
+### Section 2.1 - Transmissions Box Plot
+```{r transmissionBoxPlot, echo=FALSE}
+suppressMessages(library(ggplot2))
+suppressMessages(require(gridExtra))
+
+## Display box plot to get an idea of automatic vs manual range
+ggplot(mtcars, aes(Transmission, MPG)) +
+  geom_boxplot(alpha=I(2/3), aes(color=Transmission)) +
+  labs(
+    title = "MPG per Transmission") +
+  theme(plot.title = element_text(face = "bold", size = 16, vjust = 1),
+        axis.title.x = element_text(face = "bold"),
+        axis.title.y = element_text(face = "bold"),
+        legend.position = "none")
+```
+
+### Section 2.2 - Transmission t-Test
+```{r transmissionTTest, echo=FALSE}
+## Run Welch two-sample t-test on MPG for the two transmission types at 95% CI
+t.test(MPG ~ Transmission, mtcars, conf.level = 0.95, var.equal = FALSE, paired = FALSE)
+```
+
+### Section 3.1 - Stepwise Regression on All Variables
+```{r regressionAgainstAll}
+## Perform linear regression with all variables
+full.model <- lm(MPG ~ ., mtcars)
+
+## Run stepwise regression (i.e. selection in both directions) 
+## to select best explanatory variables
+stepwise.selected.best.model <- step(full.model, direction = "both", trace = FALSE)
+summary(stepwise.selected.best.model)
+```
+
+### Section 3.2 - ANOVA Between Models
+```{r modelAnova}
+## Perform stepwise regression on model including transmission 
+## as the only explanatory variable
+transmission.model <- lm(MPG ~ Transmission, mtcars)
+stepwise.selected.transmission <- summary(step(transmission.model, direction = "both"))
+
+## Run analysis of variance on the two candidate models
+anova(transmission.model, stepwise.selected.best.model)
+```
+
+### Section 3.3 - Diagnostic Plots
+```{r diagnosticPlots}
+suppressMessages(library(ggfortify))
+
+## Generate the diagnostic plots
+autoplot(stepwise.selected.best.model)
+```

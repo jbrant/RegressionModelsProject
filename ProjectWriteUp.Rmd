@@ -1,0 +1,18 @@
+---
+title: "Regression Models - Project WriteUp"
+author: "Jonathan Brant"
+date: "Friday, February 20, 2015"
+output: html_document
+---
+
+## Executive Summary
+Motor Trend magazine was interested in determining the relationship between fuel economy (measured in miles per gallon, or MPG) and several other variables given in the "mtcars" dataset.  In particular, they were interested in how the two transmission types (automatic and manual) affect fuel economy.
+
+This study addressed the aforementioned question at two levels.  First, we focused solely on the affect of only the transmission type on fuel economy (disregarding all other variables) and established a measure of statistical significance for that effect.  It turned out that cars with manual transmissions had better fuel economy than did automatic transmissions by a statistically significant margin ($p < 0.05$).
+
+The second portion of the study attempted to quantify the difference between transmission types in the context of other variables in the dataset.  In order to do this, two different linear regression models were constructed: one representing the transmission type as a predictor of fuel economy and the other considering all variables as predictors.  Stepwise regression was run on the latter (using both forward and backward selection), resulting in weight, horsepower, and the number of engine cylinders being the most significant predictors of fuel economy with transmission being a comparitvely insignifcant contributor.
+
+As such, while transmission type does affect fuel economy, it is not the most significant driver of such.
+
+## Data PreProcessing
+
